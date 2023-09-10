@@ -1,35 +1,41 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useComputed$ } from "@builder.io/qwik";
 import { Link, useLocation } from "@builder.io/qwik-city";
+import { type Feed } from "@prisma/client";
 import { getChannels } from "~/core/channels";
-import { getFeeds } from "~/core/feeds";
 
-export const SideMenu = component$(() => {
+export const SideMenu = component$<{
+  feeds: Feed[];
+}>(({ feeds }) => {
+  const feedLinks = useComputed$(() => {
+    return feeds.map((feed) => ({
+      url: `/feeds/${feed.id}/`,
+      text: feed.title,
+    }));
+  });
+
   const channels = getChannels().map((channel) => ({
-    url: "/channels/" + channel.id,
+    url: `/channels/${channel.id}/`,
     text: channel.name,
   }));
-  const feeds = getFeeds().map((feed) => ({
-    url: "/feeds/" + feed.id,
-    text: feed.name,
-  }));
-  const others = [{ url: "/settings", text: "Settings" }];
+  const others = [
+    { url: "/feeds/add/", text: "Add Feed" },
+    { url: "/settings/", text: "Settings" },
+  ];
 
   return (
     <>
       <SideMenuSection name="Channels" links={channels} />
-      <SideMenuSection name="Feeds" links={feeds} />
+      <SideMenuSection name="Feeds" links={feedLinks.value} />
       <SideMenuSection links={others} />
     </>
   );
 });
 
-interface SideMenuSectionProps {
+export const SideMenuSection = component$<{
   name?: string;
   links: Array<{ url: string; text: string }>;
-}
-
-export const SideMenuSection = component$((props: SideMenuSectionProps) => {
-  if (props.links.length === 0) {
+}>(({ name, links }) => {
+  if (links.length === 0) {
     return <></>;
   }
 
@@ -37,18 +43,18 @@ export const SideMenuSection = component$((props: SideMenuSectionProps) => {
 
   return (
     <section class="mb-4">
-      {props.name ? (
-        <span class="uppercase text-2xs text-sky-600">{props.name}</span>
+      {name ? (
+        <span class="uppercase text-2xs text-sky-600">{name}</span>
       ) : (
         <></>
       )}
       <ul>
-        {props.links.map(({ url, text }) => (
+        {links.map(({ url, text }) => (
           <li
             key={url}
             class={{
-              "text-sky-200": loc.url.pathname.startsWith(url),
-              "text-sky-500": !loc.url.pathname.startsWith(url),
+              "text-sky-200": loc.url.pathname === url,
+              "text-sky-500": loc.url.pathname !== url,
             }}
           >
             <Link href={url}>{text}</Link>
